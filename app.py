@@ -31,32 +31,55 @@ def speak_text(text, voice_index=0, volume=1.0, rate=1.0):
     """, height=0)
 
 # --- STYLING ---
-def apply_custom_style():
+def apply_login_style():
     st.markdown("""
         <style>
-        .stApp { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); }
-        .login-card {
-            background: white; padding: 50px; border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center;
-            max-width: 500px; margin: 100px auto; border: 2px solid #2e7d32;
+        /* Modern Gradient Background */
+        .stApp {
+            background: linear-gradient(135deg, #1d976c 0%, #93f9b9 100%);
         }
-        .stButton>button { border-radius: 8px; }
+        /* Hide the sidebar on the login page for a cleaner look */
+        [data-testid="stSidebar"] {
+            display: none;
+        }
+        /* Center the main container */
+        .main .block-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 90vh;
+        }
         </style>
     """, unsafe_allow_html=True)
 
-# Auth Callback
-auth_lib.handle_callback()
-
 # --- LOGIN GATE ---
 if "user" not in st.session_state:
-    apply_custom_style()
-    st.markdown('<div class="login-card">', unsafe_allow_html=True)
-    st.markdown('<h1 style="color: #1b5e20;">🥗 NutritionAI</h1>', unsafe_allow_html=True)
-    st.write("### Welcome to the Learning Portal")
-    st.write("Please sign in to access lessons and earn certificates.")
-    st.divider()
-    auth_lib.login()
-    st.markdown('</div>', unsafe_allow_html=True)
+    apply_login_style()
+    
+    # Using a native Streamlit Container for the "Card"
+    with st.container(border=True):
+        st.title("🥗 NutritionAI")
+        st.subheader("Regional Learning Portal")
+        
+        # Using columns to center the descriptive text and image
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            # Native icon or image
+            st.write("## 🌍") 
+        with col2:
+            st.write("**Empowering West African Examination Centers** with localized nutritional data.")
+        
+        st.divider()
+        
+        # Using a status object to guide the user
+        with st.status("Authentication Required", expanded=True) as status:
+            st.write("Please use your authorized credentials to access the dashboard.")
+            
+            # The Login Button from auth_lib
+            auth_lib.login()
+            
+            status.update(label="Awaiting Login...", state="running", expanded=False)
+
     st.stop()
 
 user = st.session_state["user"]
