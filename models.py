@@ -3,10 +3,7 @@ from database import get_connection
 def create_user(email, name, role="student"):
     conn = get_connection()
     c = conn.cursor()
-    c.execute(
-        "INSERT OR IGNORE INTO users (email, name, role) VALUES (?, ?, ?)",
-        (email, name, role)
-    )
+    c.execute("INSERT OR IGNORE INTO users (email, name, role) VALUES (?, ?, ?)", (email, name, role))
     conn.commit()
     conn.close()
 
@@ -20,7 +17,6 @@ def get_user(email):
 
 def is_admin(email):
     user = get_user(email)
-    # Role is index 3 based on the CREATE TABLE order
     return user is not None and user[3] == "admin"
 
 def save_topic(user_email, country, topic, content, is_global=0):
@@ -36,7 +32,6 @@ def save_topic(user_email, country, topic, content, is_global=0):
 def get_all_accessible_topics(user_email):
     conn = get_connection()
     c = conn.cursor()
-    # Retrieve user's topics and global admin topics
     c.execute(
         "SELECT topic, content, country, is_global FROM topics WHERE user_email=? OR is_global=1 ORDER BY is_global DESC",
         (user_email,)
