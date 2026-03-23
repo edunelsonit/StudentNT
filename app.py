@@ -162,16 +162,33 @@ if menu == "Generate":
             speak_text(full_text.split("QUIZ_SECTION")[0], v_idx, vol, spd)
         render_quiz(full_text, topic, "new")
 
+# Inside the "My Topics" section of app.py
+
 elif menu == "My Topics":
-    st.title("📚 Saved Lessons")
-    for idx, t in enumerate(services.get_user_topics_list(user["email"])):
-        if not t[3]:
-            with st.expander(f"📖 {t[0]} ({t[2]})"):
-                st.markdown(t[1])
+    st.title("📚 Your Learning History")
+    topics = services.get_user_topics_list(user["email"])
+    personal = [t for t in topics if not t[3]]
+    
+    for idx, t in enumerate(personal):
+        with st.expander(f"📖 {t[0]} ({t[2]})"):
+            st.markdown(t[1])
+            
+            col1, col2, col3 = st.columns([1,1,2])
+            with col1:
                 if st.button("🔊 Play", key=f"sp_{idx}"):
                     speak_text(t[1].split("QUIZ_SECTION")[0], v_idx, vol, spd)
-                render_quiz(t[1], t[0], f"saved_{idx}")
-
+            with col2:
+                # REGENERATE LOGIC
+                if st.button("🔄 Refresh", key=f"regen_{idx}"):
+                    with st.spinner("Regenerating lesson..."):
+                        new_text = ""
+                        for chunk in generate_learning_stream(t[2], t[0]):
+                            new_text += chunk
+                        # Update database with new content (you'll need an update_topic function in models.py)
+                        services.save_user_topic(user["email"], t[2], t[0], new_text)
+                        st.rerun() # Refresh page to show new content
+            
+            render_quiz(t[1], t[0], f"saved_{idx}")
 elif menu == "Global Quizzes":
     st.title("🌟 Official Quizzes")
     for idx, t in enumerate([x for x in services.get_user_topics_list(user["email"]) if x[3]]):
@@ -181,10 +198,46 @@ elif menu == "Global Quizzes":
                 speak_text(t[1].split("QUIZ_SECTION")[0], v_idx, vol, spd)
             render_quiz(t[1], t[0], f"global_{idx}")
 
+# Inside the Admin Panel section of app.py
+
 elif menu == "Admin Panel":
-    st.title("🛡️ Admin")
-    with st.form("admin"):
-        a_c = st.text_input("Region"); a_t = st.text_input("Title"); a_b = st.text_area("Content", height=200)
-        if st.form_submit_button("Publish"):
-            save_topic("admin", a_c, a_t, a_b, is_global=1)
-            st.success("Published!")
+    st.title("🛡️ Admin Content Creator")
+    st.subheader("Create & Publish Global Lessons")
+    
+    # 1. AI Drafting Tool
+    with st.expander("🪄 AI Drafting Assistant (Fast Generation)"):
+        col_a, col_b = st.columns(2)
+        draft_country = col_a.text_input("Target Region", key="admin_country")
+        draft_topic = col_b.text_input("Core Subject", key="admin_topic")
+        
+        if st.button("Generate Draft Content"):
+            if draft_country and draft_topic:
+                with st.status("AI is drafting the lesson..."):
+                    draft_text = ""
+                    # We use the same engine but collect it all at once for the text area
+                    for chunk in generate_learning_stream(draft_country, draft_topic):
+                        draft_text += chunk
+                    st.session_state["admin_draft"] = draft_text
+                st.success("Draft ready! See 'Lesson Content' below.")
+            else:
+                st.error("Please provide a region and subject first.")
+
+    # 2. Final Review and Publishing Form
+    with st.form("admin_publish_form"):
+        # We pre-fill the form with the AI draft if it exists
+        final_country = st.text_input("Confirm Region", value=draft_country)
+        final_topic = st.text_input("Confirm Title", value=draft_topic)
+        
+        current_draft = st.session_state.get("admin_draft", "")
+        final_content = st.text_area("Lesson Content & Quiz", value=current_draft, height=400)
+        
+        submitted = st.form_submit_button("🚀 Publish to All Students")
+        
+        if submitted:
+            if final_country and final_topic and final_content:
+                save_topic("admin-system", final_country, final_topic, final_content, is_global=1)
+                st.success(f"Successfully published '{final_topic}' to the Global Quiz tab!")
+                # Clear draft after success
+                if "admin_draft" in st.session_state: del st.session_state["admin_draft"]
+            else:
+                st.error("All fields are required to publish.")

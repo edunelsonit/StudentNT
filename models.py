@@ -39,3 +39,12 @@ def get_all_accessible_topics(user_email):
     data = c.fetchall()
     conn.close()
     return data
+def update_topic_content(user_email, topic_title, new_content):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute(
+        "UPDATE topics SET content = ? WHERE user_email = ? AND topic = ?",
+        (new_content, user_email, topic_title)
+    )
+    conn.commit()
+    conn.close()
