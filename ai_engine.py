@@ -9,13 +9,11 @@ client = OpenAI(
 def generate_learning_stream(country, topic):
     prompt = f"""
     Teach {country} students about {topic}.
-
     Structure:
-    1. A comprehensive lesson using local food examples from {country}.
+    1. Detailed lesson with local food examples from {country}.
     2. A section labeled 'QUIZ_SECTION'.
-    3. Exactly 3 multiple-choice questions formatted EXACTLY like this:
-    
-    Q: [Question text]
+    3. Exactly 3 questions in this format:
+    Q: [Question]
     A) [Option]
     B) [Option]
     C) [Option]
@@ -26,14 +24,13 @@ def generate_learning_stream(country, topic):
     stream = client.chat.completions.create(
         model=settings.OPENAI_MODEL,
         messages=[
-            {"role": "system", "content": "You are a teacher who uses local culture to explain nutrition."},
+            {"role": "system", "content": "You are a professional nutrition educator."},
             {"role": "user", "content": prompt}
         ],
         stream=True
     )
     
     for chunk in stream:
-        # Check if choices exists and has at least one item
         if hasattr(chunk, 'choices') and len(chunk.choices) > 0:
             content = chunk.choices[0].delta.content
             if content:
